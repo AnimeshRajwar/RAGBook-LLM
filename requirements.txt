@@ -11,3 +11,4 @@ numpy
 nltk
 python-docx
 PyPDF2
+gunicorn
