@@ -2,13 +2,10 @@ Flask
 python-dotenv
 pymongo
 chromadb
-google-api-python-client
-google-auth
-google-auth-httplib2
 huggingface-hub
 transformers
-torch
 sentence-transformers
+torch
 scikit-learn
 numpy
 nltk
