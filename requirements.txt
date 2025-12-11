@@ -1,0 +1,16 @@
+# Web Framework
+Flask>=3.0.0
+Werkzeug>=3.0.0
+
+# Environment Variables
+python-dotenv>=1.0.0
+
+# Google AI APIs
+# Cloud Gemini dependencies removed. Use local HF models instead (see README).
+
+# Document Processing
+PyPDF2>=3.0.0
+python-docx>=0.8.0
+
+# Additional utilities
+requests>=2.31.0

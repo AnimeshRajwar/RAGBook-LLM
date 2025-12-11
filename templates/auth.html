@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication - RAGBookLLM</title>
+    <link rel="stylesheet" href="static/auth.css">
+</head>
+<body>
+    <div class="auth-outer">
+        <div class="auth-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+            <h2 id="authTitle">Login</h2>
+            <form method="POST" action="/login">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+                <button type="submit" class="auth-btn">Login</button>
+                <p>Don't have an account? <a href="#" onclick="showRegister();return false;">Register</a></p>
+            </form>
+            <form method="POST" action="/register" id="registerForm" style="display:none;">
+                <label for="reg-username">Username</label>
+                <input type="text" id="reg-username" name="username" required>
+                <label for="reg-email">Email</label>
+                <input type="email" id="reg-email" name="email" required>
+                <label for="reg-password">Password</label>
+                <input type="password" id="reg-password" name="password" required>
+                <button type="submit" class="auth-btn">Register</button>
+                <p>Already have an account? <a href="#" onclick="showLogin();return false;">Login</a></p>
+            </form>
+        </div>
+    </div>
+    <script>
+    function showRegister() {
+        document.querySelector('.auth-container form[action="/login"]').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'flex';
+        document.getElementById('authTitle').textContent = 'Register';
+    }
+    function showLogin() {
+        document.querySelector('.auth-container form[action="/login"]').style.display = 'flex';
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('authTitle').textContent = 'Login';
+    }
+    // Auto-hide flash messages after 3 seconds with slide up animation
+    window.addEventListener('DOMContentLoaded', () => {
+        const flashes = document.querySelectorAll('.flash-messages');
+        if (flashes.length > 0) {
+            setTimeout(() => {
+                flashes.forEach(f => {
+                    f.style.animation = 'slideUp 0.5s ease';
+                    setTimeout(() => { f.style.display = 'none'; }, 500);
+                });
+            }, 3000);
+        }
+    });
+    </script>
+</body>
+</html>

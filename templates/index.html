@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAGBOOK LLM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="/static/style.css">
+        <script>
+            window.isLoggedIn = "{{ 'true' if session.get('user_id') else 'false' }}";
+        </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-papm6nQ+1QKq2vCw6Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw1Qw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Mobile top bar (hamburger) -->
+    <div class="mobile-topbar" role="toolbar" aria-hidden="true">
+        <button id="mobileMenuBtn" class="menu-btn" aria-label="Open menu" onclick="toggleMobileMenu()">☰</button>
+        <div class="brand-mobile">
+            <h1>📚 RAGBook LLM</h1>
+        </div>
+    </div>
+    <div class="container">
+        <!-- Mobile backdrop: clicking this closes the mobile menu -->
+        <div id="mobileBackdrop" class="mobile-backdrop" onclick="closeMobileMenu()" aria-hidden="true"></div>
+        <aside class="sidebar" aria-label="Sources and uploads">
+            <div class="brand">
+                <h1>📚 RAGBook LLM</h1>
+                <p class="subtitle">Research assistant <br> upload sources and ask questions</p>
+            </div>
+
+            <section class="upload-section">
+                <label class="file-input-label">
+                    <input type="file" id="fileInput" multiple>
+                    <span>Select files</span>
+                </label>
+                <div id="selectedPreview" class="selected-preview" aria-live="polite"></div>
+                <button id="uploadBtn" onclick="uploadFiles()">+ Add Source(s)</button>
+                <div id="statusMsg" class="status"></div>
+            </section>
+
+            <section class="files-list">
+                <h3>Uploaded files</h3>
+                <ul id="fileList" class="file-list">
+                    <!-- populated by JS -->
+                </ul>
+            </section>
+
+            <div class="logout-footer">
+                <a href="/logout" class="btn">Log Out</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="chat-history" id="chatHistory" role="log" aria-live="polite">
+                <div class="message bot">
+                    Welcome - Upload your sources then ask Questions
+                </div>
+            </div>
+
+            <form class="input-area" onsubmit="event.preventDefault(); sendQuery();">
+                <textarea id="userQuery" placeholder="Ask a question, or say 'Create a PPT about...' (Ctrl+Enter to send)"></textarea>
+                <div class="actions">
+                    <button type="button" id="sendBtn" onclick="sendQuery()">🚀 Send</button>
+                    <button type="button" onclick="sendSpecial('Create an audio overview of these documents')">🎧 Audio</button>
+                    <button type="button" onclick="sendSpecial('Create a PPT presentation about these documents')">📊 PPT</button>
+                </div>
+            </form>
+        </main>
+    </div>
+    <script src="/static/script.js"></script>
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="preview-modal" aria-hidden="true">
+        <div class="preview-backdrop" onclick="closePreview()"></div>
+        <div class="preview-panel" role="dialog" aria-modal="true">
+            <div class="preview-header">
+                <button class="close" onclick="closePreview()">✖</button>
+            </div>
+            <div id="previewContent" class="preview-content"></div>
+            <div class="preview-footer">
+                <a id="previewDownload" class="download-btn" href="#" download>Download</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
