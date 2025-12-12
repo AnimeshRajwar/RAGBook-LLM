@@ -1,9 +1,8 @@
+
 Flask
 python-dotenv
 pymongo
 chromadb
-huggingface-hub
-transformers
 sentence-transformers
 torch
 scikit-learn
@@ -13,4 +12,6 @@ python-docx
 PyPDF2
 gunicorn
 python-pptx
+werkzeug
+google-generativeai
 
