@@ -12,3 +12,5 @@ nltk
 python-docx
 PyPDF2
 gunicorn
+python-pptx
+
