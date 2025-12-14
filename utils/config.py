@@ -24,5 +24,11 @@ MONGO_DB_NAME = os.getenv('MONGO_DB_NAME', 'ragdb')  # fallback to 'ragdb' if no
 if not MONGO_URI:
     raise ValueError('MONGO_URI not set in environment variables')
 
-mongo_client = MongoClient(MONGO_URI)
+# Safe MongoClient initialization for Gunicorn/Render
+mongo_client = MongoClient(
+    MONGO_URI,
+    serverSelectionTimeoutMS=5000,
+    connectTimeoutMS=5000,
+    socketTimeoutMS=5000
+)
 mongo_db = mongo_client[MONGO_DB_NAME]

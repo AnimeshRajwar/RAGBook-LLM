@@ -974,7 +974,7 @@ USER INPUT
         BROWSER
         │
         ├─ Remove "Thinking..."
-        ├─ Parse Markdown
+        ├─ Parse Response
         ├─ Format Text
         ├─ Add to Chat
         ├─ Auto-scroll
@@ -1567,6 +1567,32 @@ For questions or support, contact: batman@example.com
 - Chat interface with formatting
 - File preview system
 - Resource extraction
+
+---
+
+## Render/PyMongo Deployment Notes
+
+### Preventing PyMongo & Gunicorn Hangs
+
+- **MongoDB Client Initialization:**
+  - The app uses a safe PyMongo initialization pattern to avoid Gunicorn worker hangs:
+    ```python
+    from pymongo import MongoClient
+    mongo_client = MongoClient(
+        MONGO_URI,
+        serverSelectionTimeoutMS=5000,
+        connectTimeoutMS=5000,
+        socketTimeoutMS=5000
+    )
+    ```
+- **Set Dummy VERCEL Variable:**
+  - In Render Dashboard → Environment → Add Variable:
+    - `VERCEL=0`
+  - This prevents PyMongo from serverless auto-detection issues.
+- **Gunicorn Timeout:**
+  - In Render Start Command:
+    - `gunicorn app:app --timeout 120`
+  - Prevents premature worker death during cold starts.
 
 ---
 
