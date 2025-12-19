@@ -2,7 +2,6 @@
 Flask
 python-dotenv
 pymongo
-chromadb
 sentence-transformers
 torch
 scikit-learn

@@ -33,67 +33,96 @@ class TextChunker:
         self.similarity_threshold = similarity_threshold
         self.embedder = embedder or EmbeddingGenerator(EMBEDDING_MODEL_NAME)
 
-    def _split_paragraphs(self, text: str) -> List[str]:
+
+    def _recursive_split(self, text: str, max_size: int) -> List[str]:
+        """
+        Recursively split text by big to small separators until all chunks are <= max_size.
+        Order: paragraphs (\n\n), lines (\n), sentences, spaces.
+        """
+        if len(text) <= max_size:
+            return [text]
+        # Try paragraphs
         paras = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
-        if len(paras) <= 1:
-            paras = [s.strip() for s in re.split(r'(?<=[.!?])\s+', text) if s.strip()]
-        return paras if paras else [text]
+        if len(paras) > 1:
+            chunks = []
+            buf = ""
+            for para in paras:
+                if len(buf) + len(para) + 2 <= max_size:
+                    buf = buf + ("\n\n" if buf else "") + para
+                else:
+                    if buf:
+                        chunks.extend(self._recursive_split(buf, max_size))
+                    buf = para
+            if buf:
+                chunks.extend(self._recursive_split(buf, max_size))
+            return chunks
+        # Try lines
+        lines = [l.strip() for l in text.split("\n") if l.strip()]
+        if len(lines) > 1:
+            chunks = []
+            buf = ""
+            for line in lines:
+                if len(buf) + len(line) + 1 <= max_size:
+                    buf = buf + ("\n" if buf else "") + line
+                else:
+                    if buf:
+                        chunks.extend(self._recursive_split(buf, max_size))
+                    buf = line
+            if buf:
+                chunks.extend(self._recursive_split(buf, max_size))
+            return chunks
+        # Try sentences
+        sents = [s.strip() for s in re.split(r'(?<=[.!?])\s+', text) if s.strip()]
+        if len(sents) > 1:
+            chunks = []
+            buf = ""
+            for sent in sents:
+                if len(buf) + len(sent) + 1 <= max_size:
+                    buf = buf + (" " if buf else "") + sent
+                else:
+                    if buf:
+                        chunks.extend(self._recursive_split(buf, max_size))
+                    buf = sent
+            if buf:
+                chunks.extend(self._recursive_split(buf, max_size))
+            return chunks
+        # Finally, split by spaces if still too large
+        if len(text) > max_size:
+            words = text.split()
+            chunks = []
+            buf = ""
+            for word in words:
+                if len(buf) + len(word) + 1 <= max_size:
+                    buf = buf + (" " if buf else "") + word
+                else:
+                    if buf:
+                        chunks.append(buf)
+                    buf = word
+            if buf:
+                chunks.append(buf)
+            return chunks
+        return [text]
 
     def create_chunks(self, document: Dict) -> List[Dict]:
         text = document["text"]
         source = document["metadata"]["source"]
 
-        paragraphs = self._split_paragraphs(text)
-
-        para_embeddings = self.embedder.generate_embeddings(paragraphs)
+        # Use recursive character splitter
+        base_chunks = self._recursive_split(text, self.chunk_size)
 
         chunks = []
-        i = 0
-        chunk_id = 0
         prev_tail = ""
-
-        while i < len(paragraphs):
-            current_paras = [paragraphs[i]]
-            current_embs = [para_embeddings[i]]
-            current_text = paragraphs[i]
-
-            j = i + 1
-            while j < len(paragraphs):
-                next_para = paragraphs[j]
-                next_emb = para_embeddings[j]
-
-                centroid = [sum(col) / len(col) for col in zip(*current_embs)]
-                sim = _cosine_similarity(centroid, next_emb)
-
-                if len(current_text) + 1 + len(next_para) > self.chunk_size:
-                    break
-
-                if sim >= self.similarity_threshold:
-                    current_paras.append(next_para)
-                    current_embs.append(next_emb)
-                    current_text = current_text + "\n\n" + next_para
-                    j += 1
-                else:
-                    break
-
+        for chunk_id, chunk_text in enumerate(base_chunks):
             if self.chunk_overlap > 0 and prev_tail:
-                chunk_text = prev_tail + "\n\n" + current_text
-            else:
-                chunk_text = current_text
-
+                chunk_text = prev_tail + "\n\n" + chunk_text
             chunks.append({
                 "id": f"{source}_chunk_{chunk_id}",
                 "text": chunk_text,
                 "metadata": {"source": source}
             })
-
             if self.chunk_overlap > 0:
                 tail = chunk_text[-self.chunk_overlap:]
                 prev_tail = tail
             else:
                 prev_tail = ""
-
-            chunk_id += 1
-            i = j
-
         return chunks

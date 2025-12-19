@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 
 from main import index_documents, query_rag
-from utils.config import DOCUMENTS_DIR, CHROMA_DB_PATH
+from utils.config import DOCUMENTS_DIR
 from utils.auth import auth_bp
 from utils.delete_file_api import bp as delete_file_bp
 from utils.user_files_api import bp as user_files_bp
@@ -107,10 +107,7 @@ def clear_context():
                 elif os.path.isdir(path):
                     shutil.rmtree(path)
 
-        chroma_abs = os.path.abspath(os.path.join(os.getcwd(), CHROMA_DB_PATH))
-        if os.path.exists(chroma_abs):
-            shutil.rmtree(chroma_abs)
-        os.makedirs(chroma_abs, exist_ok=True)
+        # Removed chroma_db related code
 
         docs_abs = os.path.abspath(os.path.join(os.getcwd(), DOCUMENTS_DIR))
         if os.path.exists(docs_abs):
@@ -150,9 +147,18 @@ def query_route():
     if not query:
         return jsonify({"status": "error", "message": "Missing 'query' in JSON body."}), 400
 
+    # --- Chat history tracking ---
+    chat_history = session.get('chat_history', [])
+    # Add the new user message to history
+    chat_history.append({"role": "user", "content": query})
+
     try:
         logging.info(f"Received query: {query}")
-        answer = query_rag(query)
+        answer = query_rag(query, chat_history=chat_history)
+        # Add assistant response to history
+        chat_history.append({"role": "assistant", "content": str(answer)})
+        # Store back in session
+        session['chat_history'] = chat_history[-20:]  # keep last 20 turns
         return jsonify({"status": "success", "query": query, "answer": str(answer)}), 200
     except Exception as e:
         logging.exception("Query failed")

@@ -493,20 +493,16 @@ function addMessage(text, sender) {
     
     // Convert markdown formatting to HTML
     let formattedText = String(text);
-    
     // Handle **bold** markdown
     formattedText = formattedText.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    
     // Handle *italic* markdown
     formattedText = formattedText.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-    
     // Handle newlines
     formattedText = formattedText.replace(/\n/g, '<br>');
-    
     // Handle bullet points and numbered lists
     formattedText = formattedText.replace(/^(\d+)\.\s+/gm, '<strong>$1.</strong> ');
-    formattedText = formattedText.replace(/^[-•]\s+/gm, '<span style="margin-left: 20px;">•</span> ');
-    
+    // Preserve leading * for plain text bullets (do not convert to HTML bullet, just keep as-is)
+    // No replacement for ^\*\s+ so that * is preserved in plain text
     div.innerHTML = formattedText;
     history.appendChild(div);
     history.scrollTop = history.scrollHeight;
