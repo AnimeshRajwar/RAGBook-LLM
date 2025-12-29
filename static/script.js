@@ -242,18 +242,8 @@ function createFileActions(previewRel, downloadRel){
     previewBtn.type = 'button';
     previewBtn.className = 'btn preview-btn';
     previewBtn.textContent = (['mp3','wav','m4a','ogg'].includes(ext)) ? 'Play' : 'Preview';
-    // For audio files, toggle an inline audio player inside the chat message
-    if (['mp3','wav','m4a','ogg'].includes(ext)) {
-        previewBtn.onclick = (e) => {
-            e.preventDefault();
-            toggleInlineAudio(previewRel, previewBtn);
-        };
-    } else if (['pptx','ppt'].includes(ext)) {
-        // For PPTX, open a PDF-based preview modal using the server-side preview endpoint
-        previewBtn.onclick = () => openPdfPreview(previewRel, downloadRel);
-    } else {
-        previewBtn.onclick = () => openPreview(previewRel, downloadRel);
-    }
+    // Only allow preview for non-audio and non-ppt files
+    previewBtn.onclick = () => openPreview(previewRel, downloadRel);
 
     // Download link
     const dl = document.createElement('a');
@@ -275,119 +265,9 @@ function createFileActions(previewRel, downloadRel){
     return wrapper;
 }
 
-// Open a dedicated PDF preview modal for a PPTX by calling the server /preview endpoint.
-async function openPdfPreview(previewRel, downloadRel){
-    const modal = document.getElementById('previewModal');
-    const content = document.getElementById('previewContent');
-    const download = document.getElementById('previewDownload');
-    content.innerHTML = '';
 
-    // Compute preview endpoint (server will redirect to PDF or HTML)
-    const parts = previewRel.split('/');
-    const fname = decodeURIComponent(parts[parts.length - 1]);
-    const previewEndpoint = '/preview/' + fname;
 
-    // Set download link
-    const downloadFull = downloadRel ? (window.location.origin + downloadRel) : (window.location.origin + '/static/outputs/' + fname);
-    try{
-        const modalName = decodeURIComponent((downloadFull.split('/').pop() || '').split('?')[0]);
-        if (modalName) download.setAttribute('download', modalName);
-        else download.setAttribute('download', 'download');
-    }catch(e){ download.setAttribute('download','download'); }
 
-    // show spinner while fetching preview
-    const spinner = document.createElement('div');
-    spinner.className = 'spinner';
-    content.appendChild(spinner);
-
-    try{
-        const res = await fetch(previewEndpoint, { method: 'GET', redirect: 'follow' });
-        // Use the final resolved URL for embedding
-        const finalUrl = res.url || previewEndpoint;
-        content.innerHTML = '';
-        // If the final URL ends with .pdf, use embed for better PDF display
-        if (finalUrl.toLowerCase().endsWith('.pdf')){
-            const embed = document.createElement('embed');
-            embed.src = finalUrl;
-            embed.type = 'application/pdf';
-            embed.style.width = '100%';
-            embed.style.height = '100%';
-            embed.setAttribute('aria-label','Presentation PDF preview');
-            content.appendChild(embed);
-        } else {
-            // fallback to iframe (HTML preview or other)
-            const iframe = document.createElement('iframe');
-            iframe.src = finalUrl;
-            iframe.style.width = '100%';
-            iframe.style.height = '100%';
-            iframe.frameBorder = 0;
-            content.appendChild(iframe);
-        }
-    }catch(err){
-        content.innerHTML = `<div><p>Preview failed. Try downloading the file instead.</p><pre>${String(err)}</pre></div>`;
-    }
-    modal.setAttribute('aria-hidden','false');
-}
-
-// Toggle an inline audio player in the parent chat message of the provided button
-function toggleInlineAudio(relUrl, btn) {
-    const origin = window.location.origin;
-    const fullUrl = origin + relUrl;
-    const msg = btn.closest('.message');
-    if(!msg) return;
-
-    // Look for an existing inline audio for this URL
-    const existing = msg.querySelector(`audio.inline-audio[data-src="${fullUrl}"]`);
-
-    // If there is an existing audio for this URL, toggle play/pause
-    if (existing) {
-        if (!existing.paused) {
-            existing.pause();
-            // leave the audio element in place but update button text
-            btn.textContent = 'Play';
-        } else {
-            existing.play().catch(()=>{});
-            btn.textContent = 'Pause';
-        }
-        return;
-    }
-
-    // Remove any other inline audio players in this message (only one at a time)
-    const others = msg.querySelectorAll('audio.inline-audio');
-    others.forEach(o => {
-        const linked = o.getAttribute('data-linked-btn');
-        if (linked) {
-            const linkedBtn = document.getElementById(linked);
-            if (linkedBtn) linkedBtn.textContent = 'Play';
-        }
-        o.remove();
-    });
-
-    // Ensure the button has an id so we can link it to the audio
-    if (!btn.id) btn.id = 'btn-' + Date.now();
-
-    // Create and append the audio element
-    const audio = document.createElement('audio');
-    audio.controls = true;
-    audio.className = 'inline-audio';
-    audio.setAttribute('data-src', fullUrl);
-    audio.setAttribute('data-linked-btn', btn.id);
-    audio.src = fullUrl;
-    // Insert audio after the actions bar if present, otherwise at end
-    const actions = btn.closest('.file-actions');
-    if (actions && actions.parentNode) {
-        actions.parentNode.insertBefore(audio, actions.nextSibling);
-    } else {
-        msg.appendChild(audio);
-    }
-    // hook up events to sync button text
-    audio.addEventListener('play', () => { btn.textContent = 'Pause'; });
-    audio.addEventListener('pause', () => { btn.textContent = 'Play'; });
-    audio.addEventListener('ended', () => { btn.textContent = 'Play'; audio.remove(); });
-
-    // play (may be blocked, but we'll try)
-    audio.play().catch(()=>{});
-}
 
 async function openPreview(relUrl, downloadRel=null){
     // relUrl is expected to be a relative path like /static/outputs/filename
